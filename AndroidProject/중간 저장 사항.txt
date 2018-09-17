@@ -1,0 +1,346 @@
+<%@ page language="java" contentType="text/html; charset=EUC-KR"
+    pageEncoding="EUC-KR" import = "org.json.simple.*" %>
+<%@ page import="fordatabase.ConnectDB" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=EUC-KR">
+<title>Insert title here</title>
+</head>
+<body>
+	<%
+//	ConnectDB connectDB = ConnectDB.getInstance();
+	//여기서 request.getParameter로 안드로이드에서 보낸 값들을 받습니다.
+	//안드로이드에서 보낸 sendMsg = "id="+strings[0]+"&pwd="+strings[1]; 여기서
+	// 키값과 request.getParameter안의 값이 같아야 합니다 ㅎㅎ 당연히 타입도 같아야 하구요.
+//	String type = request.getParameter("type");
+//	String userid = request.getParameter("userid");
+	
+	JSONObject jsonMain = new JSONObject();
+	JSONArray jArray = new JSONArray();
+	JSONObject jObject1 = new JSONObject();
+	JSONObject jObject2 = new JSONObject();
+	JSONObject jObject3 = new JSONObject();
+	JSONObject jObject4 = new JSONObject();
+	
+
+	jObject1.put(""), type);
+	jObject2.put("userid", userid);
+	
+	if (type.equals("tab")){ //multitab
+		String tabid = request.getParameter("tabid");
+		String oninfos = request.getParameter("oninfos");
+		jObject3.put("tabid", tabid);
+		jObject4.put("oninfos", oninfos);
+
+		int returns = connectDB.updateTab(userid, tabid, oninfos);
+		System.out.println("요청 결과 : " + returns);
+	}
+    else if (type.equals("door")){ //door
+        String doorid=request.getParameter("doorid");
+		String isopen=request.getParameter("isopen");
+		jObject3.put("doorid", doorid);
+		jObject4.put("isopen", isopen);
+		int returns = connectDB.updateDoor(userid, doorid, isopen);
+		System.out.println("요청 결과 : " + returns);
+    }
+    else
+    	out.println("ERROR");
+
+	jArray.add(0, jObject1);
+	jArray.add(1, jObject2);
+	jArray.add(2, jObject3);
+	jArray.add(3, jObject4);
+
+	jsonMain.put("List", jArray);
+	out.println(jsonMain.toJSONString());
+	%>
+
+	Hello World!
+</body>
+</html>
+
+
+
+
+
+package fordatabase;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class ConnectDB {
+	// 싱글톤 패턴으로 사용 하기위 한 코드들
+	private static ConnectDB instance = new ConnectDB();
+
+	public static ConnectDB getInstance() {
+		return instance;
+	}
+
+	public ConnectDB() {
+
+	}
+
+	String jdbcUrl = "jdbc:mysql://localhost:3306/enerchu"; // MySQL 계정
+	String dbId = "root"; // MySQL 계정
+	String dbPw = "qwerty123"; // 비밀번호
+	Connection conn = null;
+	PreparedStatement pstmt = null;
+	PreparedStatement pstmt2 = null;
+	ResultSet rs = null;
+	int rs2 = 0;
+	String sql = "";
+	String sql2 = "";
+
+	// 데이터베이스와 통신하기 위한 코드가 들어있는 메서드
+	public int updateTab(String userid, String tabid, String oninfos) {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			// 디비 연결
+			conn = DriverManager.getConnection(jdbcUrl, dbId, dbPw);
+			sql = "select userid from tabinfo where userid=? and tabid=?";// 조회
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, userid);
+			pstmt.setString(2, tabid);
+			rs = pstmt.executeQuery();
+			if (rs.next()) {
+				sql2= "update tabinfo set oninfos=? where userid=? and tabid=?";
+				pstmt2 = conn.prepareStatement(sql2);
+				pstmt2.setString(1, oninfos);
+				pstmt2.setString(2, userid);
+				pstmt2.setString(3, tabid);
+				rs2 = pstmt2.executeUpdate();
+			} else {
+				// 넣고자 하는 정보가 없을 경우 (회원가입이 가능한 경우)
+				sql2 = "insert into tabinfo values(?,?,?,0)"; // 삽입
+				pstmt2 = conn.prepareStatement(sql2);
+				pstmt2.setString(1, userid);
+				pstmt2.setString(2, tabid);
+				pstmt2.setString(3, oninfos);
+				rs2 = pstmt2.executeUpdate();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (pstmt2 != null)try {pstmt2.close();	} catch (SQLException ex) {}
+			if (pstmt != null)try {pstmt.close();} catch (SQLException ex) {}
+			if (conn != null)try {conn.close();	} catch (SQLException ex) {	}
+		}
+		return rs2;
+	}
+	
+	
+	public int updateDoor(String userid, String doorid, String isopen) {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			// 디비 연결
+			conn = DriverManager.getConnection(jdbcUrl, dbId, dbPw);
+			sql = "select userid from doorinfo where userid=? and doorid=?";// 조회
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, userid);
+			pstmt.setString(2, doorid);
+			rs = pstmt.executeQuery();
+			if (rs.next()) {
+				sql2= "update doorinfo set isopen=? where userid=? and doorid=?";
+				pstmt2 = conn.prepareStatement(sql2);
+				pstmt2.setBoolean(1, Boolean.valueOf(isopen));
+				pstmt2.setString(2, userid);
+				pstmt2.setString(3, doorid);
+				rs2 = pstmt2.executeUpdate();
+			} else {
+				// 넣고자 하는 정보가 없을 경우 (회원가입이 가능한 경우)
+				sql2 = "insert into doorinfo values(?,?,?)"; // 삽입
+				pstmt2 = conn.prepareStatement(sql2);
+				pstmt2.setString(1, userid);
+				pstmt2.setString(2, doorid);
+				pstmt2.setBoolean(3, Boolean.valueOf(isopen));
+				rs2 = pstmt2.executeUpdate();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (pstmt2 != null)try {pstmt2.close();	} catch (SQLException ex) {}
+			if (pstmt != null)try {pstmt.close();} catch (SQLException ex) {}
+			if (conn != null)try {conn.close();	} catch (SQLException ex) {	}
+		}
+		return rs2;
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+public class CASE{
+	public String name = null; // 부품명
+	public String madeIn = null; // 제조사
+	public String sqlCT = null; // sql create 문
+	public String productCategory = null; // 제품 분류
+	public String caseSize = null; // 케이스 크기
+	public String supportPowerSpecification = null; // 지원 파워 규격
+	public String sBS_Extended_ATX = null; // 지원 보드 규격_Extended-ATX
+	public String sBS_Standard_ATX = null; // 지원 보드 규격_표준-ATX
+	public String sBS_Micro_ATX = null; // 지원 보드 규격_Micro-ATX
+	public String sBS_Flex_ATX = null; // 지원 보드 규격_Flex-ATX
+	public String sBS_Standard_BTX = null; // 지원 보드 규격_표준-BTX
+	public String sBS_Micro_BTX = null; // 지원 보드 규격_Micro-BTX
+	public String sBS_Standard_ITX = null; // 지원 보드 규격_표준-ITX
+	public String sBS_Mini_ITX = null; // 지원 보드 규격_Mini-ITX
+	public String sddOnlyBay = null; // SDD 전용 베이
+	public String VGASize = null; // 그래픽 카드 장착
+	public String CPUCoolerSize = null; // CPU 쿨러 장착
+	public String IntegralWaterCooler = null; // 일체형 수냉 쿨러
+}
+public class HDD {
+	public String name = null; // 부품명
+	public String madeIn = null; // 제조사
+	public String sqlCT = null; // sql create 문
+	public String productCategory = null; // 제품 분류
+	public String diskCapacity = null; // 디스크 용량
+	public String interfaceHDD = null; // 인터페이스
+	public String RPM = null; // 회전수
+	public String bufferCapacity = null; // 버퍼 용량
+	public String diskSize = null; // 디스크 크기
+}
+public class MAINBOARD{
+	public String name = null; // 부품명
+	public String madeIn = null; // 제조사
+	public String sqlCT = null; // sql create 문
+	public String productCategory = null; // 제품 분류
+	public String CPUSocket = null; // CPU 소켓
+	public String detailSocket = null; // 세부 칩셋
+	public String formFactor = null; // 폼팩터
+	public String memoryType= null; // 메모리 종류
+	public String numOfMemorySlot = null; // 메모리 슬롯 수
+	public String memoryCapacity = null; // 메모리 용량
+	public String multiVGADetail = null; // 멀티 VGA 상세
+	public String VGAConnection1 = null; // VGA 열결
+	public String VGAConnection2 = null; // VGA 열결
+	public String MPoint2 = null; // M.2
+	public String D_SUB = null; // 그래픽 출력 단자 - D-SUB
+	public String DVI = null; // 그래픽 출력 단자 - DVI
+	public String HDMI = null; // 그래픽 출력 단자 - HDMI
+	public String DisplayPort = null; // 그래픽 출력 단자 - DisplayPort
+	public String bT_thunderBolt = null; // 후면 단자_썬더볼트
+	public String bT_e_SATA = null; // 후면 단자_e-SATA
+	public String bT_IEEE1394 = null; // 후면 단자_IEEE1394
+	public String bT_serialPort = null; // 후면 단자_시리얼포트
+	public String bT_parallelPort = null; // 후면 단자_패러럴포트
+	public String bT_USB3_0 = null; // 후면 단자_USB3.0
+	public String bT_USB3_1 = null; // 후면 단자_USB3.1
+	public String bT_PS_2 = null; // 후면 단자PS/2
+	public String nS_gigaBitLan = null; // 네트워크 사양_기가비트 랜
+	public String nS_10GigaBitLan = null; // 네트워크 사양_10 기가비트 랜
+	public String nS_wirelessLan = null; // 네트워크 사양_무선 랜
+	public String nS_bluetooth = null; // 네트워크 사양_블루투스
+}
+public class MEMORY{
+	public String name = null; // 부품명
+	public String madeIn = null; // 제조사
+	public String sqlCT = null; // sql create 문
+	public String productCategory = null; // 제품 분류
+	public String usedDevice = null; // 사용 장치
+	public String quantity = null; // 패키지
+	public String heatSink = null; // 방열판
+	public String memoryCapacity= null; // 메모리 용량
+	public String operatingClock = null; // 동작 클럭
+	public String designPower = null;	 // 필요 전력
+}
+
+public class VGA {
+	public String name = null; // 부품명
+	public String madeIn = null; // 제조사
+	public String sqlCT = null; // sql create 문
+	public String chipsetManufacturer = null; // 칩셋 제조사
+	public String chipset = null; // 칩셋
+	public String interfaceVGA = null; // 인터페이스
+	public String memoryType = null; // 메모리 종류
+	public String memoryCapacity= null; // 메모리 용량
+	public String memoryBus = null; // 메모리 버스
+	public String HDMI = null; //HDMI
+	public String DisplayPort = null; // Display Port
+	public String add_multiVGA = null; // 부가기능_멀티 VGA
+	public String add_DualLink = null; // 부가기능_Dual-Link
+	public String add_4kResolution = null; // 부가기능_4K 해상도 지원
+	public String add_VRReady = null; // 부가기능_VR Ready
+	public String add_HDMOI2_0 = null; // 부가기능_HDMI 2.0 지원
+	public String add_Dp1_4 = null; // 부가기능_Dp 1.4 지원
+	public String add_HDCP = null; // 부가기능_HDCP 지원
+	public String add_DualBIOS = null; // 부가기능_Dual BIOS
+	public String coreCoolingSystem = null; // 코어 냉각방식
+	public String VGASize_horizontal = null; // 그래픽 카드 크기_가로
+	public String VGASize_vertical = null; // 그래픽 카드 크기_세로
+	public String designPower = null; // 필요 전력
+}
+
+public class SSD{
+	public String name = null; // 부품명
+	public String madeIn = null; // 제조사
+	public String sqlCT = null; // sql create 문
+
+	public String productCategory = null; // 제품 분류
+	public String diskType = null; // 디스크 타입
+	public String interfaceSSD = null; // 인터페이스
+	public String diskCapacity = null; // 디스크 용량
+	public String memoryType= null; // 메모리 타입
+	public String nandStructure = null; // 낸드 구조
+	public String nmProcess = null; // 공정
+	public String controller = null; // 컨트롤러
+	public String writeSpeed = null; // 읽기 속도
+	public String readSpeed = null; // 쓰기 속도
+	public String add_UASP = null; // 부가기능_UASP 지원
+	public String add_AES = null; // 부가기능_AES 암호화
+	public String add_WiFi = null; // 부가기능_Wi-Fi
+	public String add_USB = null; // 부가기능_USB 연결 지원
+	public String add_3_5Bracket = null; // 부가기능_3.5형 브라켓
+	public String add_forMacBookUpgrade = null; // 부가기능_맥북 업그레이드용
+	public String add_ONFI = null; // 부가기능_ONFI 적용
+}
+public class POWER{
+	public String name = null; // 부품명
+	public String madeIn = null; // 제조사
+	public String sqlCT = null; // sql create 문
+	public String productCategory = null; // 제품 분류
+	public String ratedOutput = null; // 정격 출력
+	public String NotationOutput = null; // 표기 출력
+	public String mainPowerConnector = null; // 메인 전원 커넥터 
+	public String coolingFanSize = null; // 쿨링팬 크기
+	public String aC_Auxiliary8Pins_4_Plus_4 = null; // 보조 커넥터_보조 8핀(4+4) 커넥터
+	public String aC_Auxiliary8Pins = null; // 보조 커넥터_보조 8핀 커넥터
+	public String aC_Auxiliary4Pins = null; // 보조 커넥터_보조 4핀 커넥터
+	public String aC_FDD = null; // 보조 커넥터_FDD 커넥터
+	public String AMDCertifications = null; // 인증사항
+	public String PLUS80Certification = null; // 80PLUS인증
+}
+public class CPU{
+	protected String name = null; // 부품명
+	protected String madeIn = null; // 제조사
+	protected String sqlCT = null; // sql create 문
+	private String brand = null; // 브랜드 분류
+	private String socket = null; // 소켓 구분
+	private String operatingBit = null; // 연산 체계
+	private String coreType = null; // 코어 형태
+	private String threadType = null; // 쓰레드 형태
+	private String operatingSpeed = null; // 동작 속도
+	private String manufactureProcess = null; // 제조 공정
+	private String designPower = null; // 필요 전력
+	private String packageType = null; // 패키지 형태
+	private String boolGPU = null; // GPU 유무
+}
+
+
+
+
+
+
